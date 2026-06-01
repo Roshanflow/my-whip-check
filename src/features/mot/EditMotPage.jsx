@@ -28,6 +28,12 @@ export default function EditMotPage() {
     setForm(f => ({ ...f, [field]: value }))
   }
 
+  async function handleDelete() {
+    if (!confirm('Delete this MOT record? This cannot be undone.')) return
+    await supabase.from('mot_records').delete().eq('id', motId)
+    navigate(`/vehicles/${id}`)
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
@@ -108,6 +114,9 @@ export default function EditMotPage() {
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Saving…' : 'Save Changes'}
+            </button>
+            <button type="button" className="btn btn-danger" onClick={handleDelete}>
+              Delete Record
             </button>
           </div>
         </form>

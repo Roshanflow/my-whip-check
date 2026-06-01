@@ -268,3 +268,49 @@
   color: #374151;
   margin-bottom: 24px;
 }
+
+@media (max-width: 640px) {
+  /* Lookup card */
+  .lookup-card {
+    padding: 16px;
+  }
+  .lookup-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lookup-input {
+    width: 100%;
+  }
+  .lookup-form .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Import panel */
+  .import-panel {
+    padding: 16px;
+  }
+  .import-plate-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .import-plate-form .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Vehicle grid — single column */
+  .vehicles-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Vehicle detail hero — stack vertically */
+  .vehicle-detail-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .mot-status-pill {
+    align-self: flex-start;
+  }
+}

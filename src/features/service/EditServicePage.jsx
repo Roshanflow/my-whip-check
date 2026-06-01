@@ -30,6 +30,12 @@ export default function EditServicePage() {
     setForm(f => ({ ...f, [field]: value }))
   }
 
+  async function handleDelete() {
+    if (!confirm('Delete this service record? This cannot be undone.')) return
+    await supabase.from('service_records').delete().eq('id', serviceId)
+    navigate(`/vehicles/${id}`)
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
@@ -92,6 +98,9 @@ export default function EditServicePage() {
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Saving…' : 'Save Changes'}
+            </button>
+            <button type="button" className="btn btn-danger" onClick={handleDelete}>
+              Delete Record
             </button>
           </div>
         </form>

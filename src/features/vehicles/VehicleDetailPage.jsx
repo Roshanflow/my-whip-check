@@ -309,7 +309,6 @@ export default function VehicleDetailPage() {
                       </td>
                       <td className="cell-actions">
                         <Link to={`/vehicles/${id}/mot/${m.id}/edit`} className="btn btn-secondary btn-sm">Edit</Link>
-                        <button onClick={() => deleteMot(m.id)} className="btn btn-danger btn-sm">Del</button>
                       </td>
                     </tr>
                   ))}
@@ -350,7 +349,6 @@ export default function VehicleDetailPage() {
                       <td>{s.provider || '—'}</td>
                       <td className="cell-actions">
                         <Link to={`/vehicles/${id}/service/${s.id}/edit`} className="btn btn-secondary btn-sm">Edit</Link>
-                        <button onClick={() => deleteService(s.id)} className="btn btn-danger btn-sm">Del</button>
                       </td>
                     </tr>
                   ))}
