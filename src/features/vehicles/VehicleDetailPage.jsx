@@ -351,9 +351,9 @@ export default function VehicleDetailPage() {
                       <td>{formatDate(m.expiry_date)}</td>
                       <td>{m.mileage ? m.mileage.toLocaleString() + ' mi' : '—'}</td>
                       <td>
-                        <MotNotes notes={m.advisory_notes} label="advisory" />
+                        <MotNotes notes={m.advisory_notes} label="advisory" detailPath={`/vehicles/${id}/mot/${m.id}/notes`} />
                         {m.failure_reasons && (
-                          <MotNotes notes={m.failure_reasons} label="failure" />
+                          <MotNotes notes={m.failure_reasons} label="failure" detailPath={`/vehicles/${id}/mot/${m.id}/notes`} />
                         )}
                       </td>
                       <td className="cell-actions">

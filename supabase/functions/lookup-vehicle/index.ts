@@ -123,33 +123,43 @@ serve(async (req) => {
           }
         }
 
-        motHistory = tests.map((t: Record<string, unknown>) => ({
-          mot_test_number: t.motTestNumber ?? t.testNumber ?? null,
-          test_date: t.completedDate ?? t.testDate ?? null,
-          expiry_date: t.expiryDate ?? null,
-          result: String(t.testResult ?? t.result ?? '').toLowerCase().includes('pass') ? 'pass' : 'fail',
-          mileage: t.odometerValue ? parseInt(String(t.odometerValue), 10) : null,
-          advisory_notes: Array.isArray(t.rfrAndComments)
-            ? t.rfrAndComments
-                .filter((c: Record<string, unknown>) => {
-                  const type = String(c.type ?? c.category ?? '').toUpperCase()
-                  return type === 'ADVISORY' || type === 'USER_ENTERED' || type === 'MONITOR' || (!['MAJOR', 'DANGEROUS', 'MINOR', 'FAIL', 'PRS'].includes(type) && type !== '')
-                })
-                .map((c: Record<string, unknown>) => String(c.text ?? c.comment ?? c.description ?? '').trim())
-                .filter(Boolean)
-                .join('\n') || null
-            : null,
-          failure_reasons: Array.isArray(t.rfrAndComments)
-            ? t.rfrAndComments
-                .filter((c: Record<string, unknown>) => {
-                  const type = String(c.type ?? c.category ?? '').toUpperCase()
-                  return ['MAJOR', 'DANGEROUS', 'MINOR', 'FAIL', 'PRS'].includes(type)
-                })
-                .map((c: Record<string, unknown>) => String(c.text ?? c.comment ?? c.description ?? '').trim())
-                .filter(Boolean)
-                .join('\n') || null
-            : null,
-        }))
+        const FAILURE_TYPES = new Set(['MAJOR', 'DANGEROUS', 'FAIL', 'PRS'])
+        const ADVISORY_TYPES = new Set(['ADVISORY', 'USER ENTERED', 'USER_ENTERED', 'MONITOR', 'MINOR'])
+
+        motHistory = tests.map((t: Record<string, unknown>) => {
+          const comments: Record<string, unknown>[] =
+            Array.isArray(t.rfrAndComments) ? t.rfrAndComments :
+            Array.isArray(t.defects)        ? t.defects        :
+            Array.isArray(t.comments)       ? t.comments       : []
+
+          const advisory_notes = comments
+            .filter((c: Record<string, unknown>) => {
+              const type = String(c.type ?? c.category ?? '').toUpperCase().trim()
+              return ADVISORY_TYPES.has(type) || (!FAILURE_TYPES.has(type) && type !== '')
+            })
+            .map((c: Record<string, unknown>) => String(c.text ?? c.comment ?? c.description ?? '').trim())
+            .filter(Boolean)
+            .join('\n') || null
+
+          const failure_reasons = comments
+            .filter((c: Record<string, unknown>) => {
+              const type = String(c.type ?? c.category ?? '').toUpperCase().trim()
+              return FAILURE_TYPES.has(type)
+            })
+            .map((c: Record<string, unknown>) => String(c.text ?? c.comment ?? c.description ?? '').trim())
+            .filter(Boolean)
+            .join('\n') || null
+
+          return {
+            mot_test_number: t.motTestNumber ?? t.testNumber ?? null,
+            test_date: t.completedDate ?? t.testDate ?? null,
+            expiry_date: t.expiryDate ?? null,
+            result: String(t.testResult ?? t.result ?? '').toLowerCase().includes('pass') ? 'pass' : 'fail',
+            mileage: t.odometerValue ? parseInt(String(t.odometerValue), 10) : null,
+            advisory_notes,
+            failure_reasons,
+          }
+        })
       }
     } else {
       return json({ error: 'DVSA credentials not configured. Set DVSA_CLIENT_ID, DVSA_CLIENT_SECRET, DVSA_API_KEY, and DVSA_TOKEN_URL in Edge Function secrets.' }, 500)

@@ -49,3 +49,83 @@
 .mot-notes-toggle:hover {
   text-decoration: underline;
 }
+
+.mot-notes-more {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* ── MOT Notes detail page ────────────────────────────────────────────────── */
+.page-title-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.mot-notes-page-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ── Timeline ─────────────────────────────────────────────────────────────── */
+.mot-timeline {
+  display: flex;
+  flex-direction: column;
+  padding-left: 16px;
+}
+
+.mot-timeline-item {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 28px;
+  position: relative;
+}
+
+/* Vertical line connecting dots */
+.mot-timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 16px;
+  bottom: 0;
+  width: 2px;
+  background: #e5e7eb;
+}
+
+.mot-timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 2px;
+  border: 2px solid currentColor;
+  background: #fff;
+}
+
+.mot-timeline-red    { color: #dc2626; }
+.mot-timeline-amber  { color: #d97706; }
+.mot-timeline-blue   { color: #2563eb; }
+.mot-timeline-orange { color: #ea580c; }
+
+.mot-timeline-red    .mot-timeline-dot { background: #fee2e2; border-color: #dc2626; }
+.mot-timeline-amber  .mot-timeline-dot { background: #fef3c7; border-color: #d97706; }
+.mot-timeline-blue   .mot-timeline-dot { background: #dbeafe; border-color: #2563eb; }
+.mot-timeline-orange .mot-timeline-dot { background: #ffedd5; border-color: #ea580c; }
+
+.mot-timeline-body {
+  flex: 1;
+  padding-top: 0;
+}
+
+.mot-timeline-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #111827;
+}
