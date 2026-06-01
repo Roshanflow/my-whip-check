@@ -13,6 +13,7 @@ import AddMotPage from '../features/mot/AddMotPage'
 import EditMotPage from '../features/mot/EditMotPage'
 import AddServicePage from '../features/service/AddServicePage'
 import EditServicePage from '../features/service/EditServicePage'
+import ProfilePage from '../features/profile/ProfilePage'
 
 export default function AppRouter() {
   return (
@@ -34,6 +35,7 @@ export default function AppRouter() {
           <Route path="/vehicles/:id/mot/:motId/edit" element={<EditMotPage />} />
           <Route path="/vehicles/:id/service/new" element={<AddServicePage />} />
           <Route path="/vehicles/:id/service/:serviceId/edit" element={<EditServicePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>
     </Routes>
