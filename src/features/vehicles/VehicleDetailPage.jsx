@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { formatDate, motStatus } from './vehicleUtils'
@@ -13,60 +13,13 @@ export default function VehicleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // MOT import state
-  const [importing, setImporting] = useState(false)
-  const [importError, setImportError] = useState('')
-  const [importResult, setImportResult] = useState(null)
-
-  const importMotHistory = useCallback(async (registration, existingRecords) => {
-    setImporting(true)
-    setImportError('')
-    setImportResult(null)
-
-    const { data, error: fnErr } = await supabase.functions.invoke('lookup-vehicle', {
-      body: { registration },
-    })
-
-    if (fnErr || data?.error) {
-      setImportError(data?.error ?? fnErr?.message ?? 'Could not fetch MOT history.')
-      setImporting(false)
-      return
-    }
-
-    const history = data?.motHistory ?? []
-
-    if (history.length === 0) {
-      setImportResult({ added: 0, skipped: 0 })
-      setImporting(false)
-      return
-    }
-
-    // Skip records already in the DB (match on test_date)
-    const existingDates = new Set(existingRecords.map(r => r.test_date))
-    const toInsert = history.filter(r => !existingDates.has(r.test_date))
-
-    if (toInsert.length > 0) {
-      const { data: inserted, error: insErr } = await supabase
-        .from('mot_records')
-        .insert(toInsert.map(r => ({ ...r, vehicle_id: id })))
-        .select()
-
-      if (insErr) {
-        setImportError(insErr.message)
-        setImporting(false)
-        return
-      }
-
-      setMotRecords(prev =>
-        [...(inserted || []), ...prev].sort(
-          (a, b) => new Date(b.test_date) - new Date(a.test_date)
-        )
-      )
-    }
-
-    setImportResult({ added: toInsert.length, skipped: history.length - toInsert.length })
-    setImporting(false)
-  }, [id])
+  // DVSA import flow state
+  const [showImport, setShowImport] = useState(false)
+  const [importPlate, setImportPlate] = useState('')
+  const [fetching, setFetching] = useState(false)
+  const [fetchError, setFetchError] = useState('')
+  const [preview, setPreview] = useState(null)   // { records: [], skipped: [] }
+  const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -75,28 +28,86 @@ export default function VehicleDetailPage() {
         supabase.from('mot_records').select('*').eq('vehicle_id', id).order('test_date', { ascending: false }),
         supabase.from('service_records').select('*').eq('vehicle_id', id).order('service_date', { ascending: false }),
       ])
-
-      if (vRes.error) {
-        setError(vRes.error.message)
-        setLoading(false)
-        return
+      if (vRes.error) { setError(vRes.error.message) }
+      else {
+        setVehicle(vRes.data)
+        setMotRecords(motRes.data || [])
+        setServiceRecords(svcRes.data || [])
       }
-
-      const mot = motRes.data || []
-      const svc = svcRes.data || []
-
-      setVehicle(vRes.data)
-      setMotRecords(mot)
-      setServiceRecords(svc)
       setLoading(false)
-
-      // Auto-import on first visit if no MOT records exist
-      if (mot.length === 0) {
-        importMotHistory(vRes.data.registration, mot)
-      }
     }
     load()
-  }, [id, importMotHistory])
+  }, [id])
+
+  function openImport() {
+    setShowImport(true)
+    setImportPlate(vehicle?.registration ?? '')
+    setFetchError('')
+    setPreview(null)
+  }
+
+  function closeImport() {
+    setShowImport(false)
+    setImportPlate('')
+    setFetchError('')
+    setPreview(null)
+  }
+
+  async function handleFetch(e) {
+    e.preventDefault()
+    if (!importPlate.trim()) return
+    setFetching(true)
+    setFetchError('')
+    setPreview(null)
+
+    const { data, error: fnErr } = await supabase.functions.invoke('lookup-vehicle', {
+      body: { registration: importPlate.trim() },
+    })
+
+    setFetching(false)
+
+    if (fnErr || data?.error) {
+      setFetchError(data?.error ?? fnErr?.message ?? 'Could not fetch MOT history. Check the plate and try again.')
+      return
+    }
+
+    const history = data?.motHistory ?? []
+    if (history.length === 0) {
+      setFetchError('No MOT history found for this registration.')
+      return
+    }
+
+    // Split into new vs already existing
+    const existingDates = new Set(motRecords.map(r => r.test_date))
+    const newRecords = history.filter(r => !existingDates.has(r.test_date))
+    const skipped = history.filter(r => existingDates.has(r.test_date))
+
+    setPreview({ records: newRecords, skipped })
+  }
+
+  async function handleConfirm() {
+    if (!preview?.records?.length) return
+    setConfirming(true)
+
+    const { data: inserted, error: insErr } = await supabase
+      .from('mot_records')
+      .insert(preview.records.map(r => ({ ...r, vehicle_id: id })))
+      .select()
+
+    setConfirming(false)
+
+    if (insErr) {
+      setFetchError(insErr.message)
+      return
+    }
+
+    setMotRecords(prev =>
+      [...(inserted || []), ...prev].sort(
+        (a, b) => new Date(b.test_date) - new Date(a.test_date)
+      )
+    )
+    closeImport()
+  }
 
   async function deleteMot(motId) {
     if (!confirm('Delete this MOT record?')) return
@@ -143,9 +154,7 @@ export default function VehicleDetailPage() {
         </div>
       </div>
 
-      {vehicle.notes && (
-        <div className="vehicle-notes">{vehicle.notes}</div>
-      )}
+      {vehicle.notes && <div className="vehicle-notes">{vehicle.notes}</div>}
 
       <div className="tabs">
         <button className={`tab${tab === 'mot' ? ' active' : ''}`} onClick={() => setTab('mot')}>
@@ -159,37 +168,107 @@ export default function VehicleDetailPage() {
       {tab === 'mot' && (
         <div>
           <div className="section-action">
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => importMotHistory(vehicle.registration, motRecords)}
-              disabled={importing}
-            >
-              {importing ? '⟳ Fetching from DVSA…' : '⟳ Refresh from DVSA'}
+            <button className="btn btn-secondary btn-sm" onClick={openImport}>
+              🏛 Import from DVSA
             </button>
             <Link to={`/vehicles/${id}/mot/new`} className="btn btn-primary btn-sm">+ Add MOT</Link>
           </div>
 
-          {importing && (
-            <div className="import-banner import-banner-loading">
-              Fetching MOT history from the DVSA government database…
+          {/* ── DVSA Import Panel ─────────────────────────────────────── */}
+          {showImport && (
+            <div className="import-panel">
+              <div className="import-panel-header">
+                <div className="import-panel-title">Import MOT History from DVSA</div>
+                <button className="import-panel-close" onClick={closeImport}>✕</button>
+              </div>
+
+              {!preview ? (
+                <>
+                  <p className="import-panel-desc">
+                    Enter the vehicle registration plate to pull its full MOT history from the DVSA government database.
+                  </p>
+                  <form onSubmit={handleFetch} className="import-plate-form">
+                    <input
+                      className="lookup-input"
+                      value={importPlate}
+                      onChange={e => setImportPlate(e.target.value.toUpperCase())}
+                      placeholder="e.g. AB12 CDE"
+                      maxLength={8}
+                      autoFocus
+                    />
+                    <button type="submit" className="btn btn-primary" disabled={fetching || !importPlate.trim()}>
+                      {fetching ? 'Fetching…' : 'Fetch MOT History'}
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={closeImport}>Cancel</button>
+                  </form>
+                  {fetchError && <div className="alert-error" style={{ marginTop: 12 }}>{fetchError}</div>}
+                </>
+              ) : (
+                <>
+                  <div className="import-preview-title">
+                    Review MOT History for <strong>{importPlate}</strong>
+                  </div>
+
+                  {preview.records.length === 0 ? (
+                    <div className="alert-error" style={{ marginBottom: 12 }}>
+                      All {preview.skipped.length} records from DVSA already exist in your history. Nothing to import.
+                    </div>
+                  ) : (
+                    <>
+                      <p className="import-panel-desc">
+                        Found <strong>{preview.records.length} new record{preview.records.length !== 1 ? 's' : ''}</strong> to import.
+                        {preview.skipped.length > 0 && ` ${preview.skipped.length} already exist and will be skipped.`}
+                      </p>
+                      <div className="table-wrap" style={{ marginBottom: 16 }}>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Test Date</th>
+                              <th>Result</th>
+                              <th>Expiry</th>
+                              <th>Mileage</th>
+                              <th>Advisories</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {preview.records.map((m, i) => (
+                              <tr key={i}>
+                                <td>{formatDate(m.test_date)}</td>
+                                <td><span className={`badge badge-${m.result}`}>{m.result}</span></td>
+                                <td>{formatDate(m.expiry_date)}</td>
+                                <td>{m.mileage ? m.mileage.toLocaleString() + ' mi' : '—'}</td>
+                                <td className="cell-notes">{m.advisory_notes || '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+
+                  {fetchError && <div className="alert-error" style={{ marginBottom: 12 }}>{fetchError}</div>}
+
+                  <div className="form-actions">
+                    {preview.records.length > 0 && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleConfirm}
+                        disabled={confirming}
+                      >
+                        {confirming ? 'Saving…' : `Yes, import ${preview.records.length} record${preview.records.length !== 1 ? 's' : ''}`}
+                      </button>
+                    )}
+                    <button className="btn btn-secondary" onClick={closeImport}>Cancel</button>
+                    <button className="btn btn-secondary" onClick={() => setPreview(null)}>← Change Plate</button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          {importError && (
-            <div className="alert-error" style={{ marginBottom: 16 }}>{importError}</div>
-          )}
-
-          {importResult && !importing && (
-            <div className="import-banner import-banner-success">
-              {importResult.added > 0
-                ? `✓ Imported ${importResult.added} new MOT record${importResult.added !== 1 ? 's' : ''} from DVSA.${importResult.skipped > 0 ? ` ${importResult.skipped} already existed.` : ''}`
-                : 'No new MOT records to import — already up to date.'}
-            </div>
-          )}
-
-          {motRecords.length === 0 && !importing ? (
-            <div className="empty-state">No MOT records found.</div>
-          ) : motRecords.length > 0 ? (
+          {motRecords.length === 0 ? (
+            <div className="empty-state">No MOT records yet.</div>
+          ) : (
             <div className="table-wrap">
               <table>
                 <thead>
@@ -219,7 +298,7 @@ export default function VehicleDetailPage() {
                 </tbody>
               </table>
             </div>
-          ) : null}
+          )}
         </div>
       )}
 

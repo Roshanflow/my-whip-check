@@ -74,24 +74,62 @@
   color: #6b7280;
 }
 
-/* ── Import banner ───────────────────────────────────────────────────────── */
-.import-banner {
-  padding: 10px 14px;
+/* ── DVSA Import panel ───────────────────────────────────────────────────── */
+.import-panel {
+  background: #f8faff;
+  border: 1px solid #c7d9f8;
   border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.import-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.import-panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.import-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #9ca3af;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.import-panel-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.import-panel-desc {
   font-size: 14px;
-  margin-bottom: 16px;
+  color: #4b6a9b;
+  margin-bottom: 14px;
+  line-height: 1.5;
 }
 
-.import-banner-loading {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1d4ed8;
+.import-plate-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.import-banner-success {
-  background: #d1fae5;
-  border: 1px solid #6ee7b7;
-  color: #065f46;
+.import-preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
 }
 
 /* ── Vehicle grid ────────────────────────────────────────────────────────── */
