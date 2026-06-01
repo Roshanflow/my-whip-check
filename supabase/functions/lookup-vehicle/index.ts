@@ -70,6 +70,8 @@ serve(async (req) => {
           motStatus: dvla.motStatus ?? null,
           motExpiryDate: dvla.motExpiryDate ?? null,
           taxStatus: dvla.taxStatus ?? null,
+          typeApproval: dvla.typeApproval ?? null,
+          wheelplan: dvla.wheelplan ?? null,
         }
       }
     }
@@ -98,6 +100,28 @@ serve(async (req) => {
         const vehicle = Array.isArray(dvsaData) ? dvsaData[0] : dvsaData
         const tests = vehicle?.motTests ?? vehicle?.tests ?? []
         _rawFirstTest = tests[0] ?? null
+
+        // Extract vehicle details from DVSA response (used when DVLA key not available)
+        if (!vehicleInfo && vehicle) {
+          const firstUsed = String(vehicle.firstUsedDate ?? vehicle.manufactureDate ?? '')
+          const year = firstUsed ? parseInt(firstUsed.slice(0, 4), 10) : null
+          const typeApproval = String(vehicle.typeApproval ?? vehicle.vehicleClass ?? '').toUpperCase()
+          const derivedType = typeApproval.startsWith('L') ? 'bike' : 'car'
+          vehicleInfo = {
+            make: toTitle(String(vehicle.make ?? '')),
+            model: toTitle(String(vehicle.model ?? '')),
+            colour: toTitle(String(vehicle.primaryColour ?? vehicle.colour ?? '')),
+            year: isNaN(year as number) ? null : year,
+            registration: String(vehicle.registration ?? plate),
+            fuelType: vehicle.fuelType ?? null,
+            motStatus: null,
+            motExpiryDate: null,
+            taxStatus: null,
+            typeApproval: vehicle.typeApproval ?? null,
+            wheelplan: vehicle.wheelplan ?? null,
+            vehicleType: derivedType,
+          }
+        }
 
         motHistory = tests.map((t: Record<string, unknown>) => ({
           mot_test_number: t.motTestNumber ?? t.testNumber ?? null,

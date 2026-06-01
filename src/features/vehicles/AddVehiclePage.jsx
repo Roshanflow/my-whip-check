@@ -29,7 +29,6 @@ export default function AddVehiclePage() {
     if (!plate.trim()) return
     setLookupError('')
     setLookupResult(null)
-    setMotImported(false)
     setLookupLoading(true)
 
     const { data, error: err } = await supabase.functions.invoke('lookup-vehicle', {
@@ -45,14 +44,22 @@ export default function AddVehiclePage() {
 
     setLookupResult(data)
 
-    // Pre-fill form fields from DVLA response
     const v = data.vehicle
+    if (!v) return  // DVLA not configured — MOT history may still have loaded
+
+    // Derive vehicle type from DVLA typeApproval or DVSA vehicleType
+    const approval = String(v.typeApproval ?? '').toUpperCase()
+    const wp = String(v.wheelplan ?? '').toUpperCase()
+    const derivedType = v.vehicleType ?? (approval.startsWith('L') || wp.includes('2 WHEEL') ? 'bike' : 'car')
+
     setForm(f => ({
       ...f,
       make: v.make || f.make,
+      model: v.model || f.model,
       color: v.colour || f.color,
       year: v.year ? String(v.year) : f.year,
       registration: v.registration || f.registration,
+      type: derivedType,
     }))
   }
 
@@ -133,10 +140,16 @@ export default function AddVehiclePage() {
           <div className="lookup-result">
             <span className="lookup-result-icon">✓</span>
             <div>
-              <strong>{lookupResult.vehicle.make}</strong>
-              {' · '}{lookupResult.vehicle.year}
-              {' · '}{lookupResult.vehicle.colour}
-              {lookupResult.vehicle.fuelType && ` · ${lookupResult.vehicle.fuelType}`}
+              {lookupResult.vehicle ? (
+                <>
+                  <strong>{lookupResult.vehicle.make}{lookupResult.vehicle.model ? ` ${lookupResult.vehicle.model}` : ''}</strong>
+                  {lookupResult.vehicle.year && ` · ${lookupResult.vehicle.year}`}
+                  {lookupResult.vehicle.colour && ` · ${lookupResult.vehicle.colour}`}
+                  {lookupResult.vehicle.fuelType && ` · ${lookupResult.vehicle.fuelType}`}
+                </>
+              ) : (
+                <span>Registration found</span>
+              )}
               {motCount > 0 && (
                 <span className="lookup-mot-count"> · {motCount} MOT record{motCount !== 1 ? 's' : ''} found</span>
               )}
