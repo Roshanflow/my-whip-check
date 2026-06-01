@@ -23,3 +23,297 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:hover:not(:disabled) { opacity: 0.88; }
+
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
+.btn-danger { background: #dc2626; color: #fff; }
+.btn-sm { padding: 5px 11px; font-size: 13px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ── Forms ───────────────────────────────────────────────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--surface);
+  width: 100%;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(11, 58, 134, 0.1);
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group + .form-group {
+  margin-top: 0;
+}
+
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 680px;
+}
+
+.form-card .form-group {
+  margin-bottom: 16px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Alerts ──────────────────────────────────────────────────────────────── */
+.alert-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge-car   { background: #dbeafe; color: #1d4ed8; }
+.badge-bike  { background: #fef3c7; color: #92400e; }
+.badge-pass  { background: #d1fae5; color: #065f46; }
+.badge-fail  { background: #fee2e2; color: #991b1b; }
+
+.badge-mot-valid   { background: #d1fae5; color: #065f46; }
+.badge-mot-soon    { background: #fef3c7; color: #92400e; }
+.badge-mot-expired { background: #fee2e2; color: #991b1b; }
+.badge-mot-fail    { background: #fee2e2; color: #991b1b; }
+.badge-mot-none    { background: #f3f4f6; color: #6b7280; }
+
+/* ── Nav ─────────────────────────────────────────────────────────────────── */
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav-brand {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.nav-email {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* ── Page shell ──────────────────────────────────────────────────────────── */
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 36px 28px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 12px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.page-loading {
+  padding: 60px 28px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.back-link {
+  font-size: 14px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.back-link:hover { text-decoration: underline; }
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-wrap th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-wrap td {
+  padding: 11px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tr:hover td { background: #f8faff; }
+
+.cell-notes {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6b7280;
+}
+
+.cell-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+  gap: 4px;
+}
+
+.tab {
+  padding: 9px 18px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab:hover:not(.active) { color: var(--text); }
+
+/* ── Section action row ──────────────────────────────────────────────────── */
+.section-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}

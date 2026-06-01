@@ -1,11 +1,26 @@
-export default function AppLayout({ children }) {
+import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+
+export default function AppLayout() {
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleSignOut() {
+    await signOut()
+    navigate('/login')
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center' }}>
-        <span style={{ fontWeight: 600, color: 'var(--accent)' }}>App</span>
+      <header className="nav">
+        <Link to="/" className="nav-brand">🚗 MyWhipCheck</Link>
+        <div className="nav-actions">
+          <span className="nav-email">{user?.email}</span>
+          <button onClick={handleSignOut} className="btn btn-secondary btn-sm">Sign out</button>
+        </div>
       </header>
-      <main style={{ padding: '32px 24px' }}>
-        {children}
+      <main>
+        <Outlet />
       </main>
     </div>
   )
