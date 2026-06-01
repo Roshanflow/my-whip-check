@@ -74,6 +74,26 @@
   color: #6b7280;
 }
 
+/* ── Import banner ───────────────────────────────────────────────────────── */
+.import-banner {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.import-banner-loading {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
+.import-banner-success {
+  background: #d1fae5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+}
+
 /* ── Vehicle grid ────────────────────────────────────────────────────────── */
 .vehicles-grid {
   display: grid;
