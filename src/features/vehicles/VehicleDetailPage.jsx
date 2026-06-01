@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { formatDate, motStatus } from './vehicleUtils'
+import MotNotes from './MotNotes'
 import './vehicles.css'
 
 export default function VehicleDetailPage() {
@@ -77,10 +78,12 @@ export default function VehicleDetailPage() {
       return
     }
 
-    // Split into new vs already existing
-    const existingDates = new Set(motRecords.map(r => r.test_date))
-    const newRecords = history.filter(r => !existingDates.has(r.test_date))
-    const skipped = history.filter(r => existingDates.has(r.test_date))
+    // Normalise to YYYY-MM-DD for comparison (DVSA may return full ISO timestamps)
+    const toDateStr = (val) => val ? String(val).slice(0, 10) : null
+    const existingDates = new Set(motRecords.map(r => toDateStr(r.test_date)))
+    const normalised = history.map(r => ({ ...r, test_date: toDateStr(r.test_date), expiry_date: toDateStr(r.expiry_date) }))
+    const newRecords = normalised.filter(r => !existingDates.has(r.test_date))
+    const skipped = normalised.filter(r => existingDates.has(r.test_date))
 
     setPreview({ records: newRecords, skipped })
   }
@@ -237,7 +240,10 @@ export default function VehicleDetailPage() {
                                 <td><span className={`badge badge-${m.result}`}>{m.result}</span></td>
                                 <td>{formatDate(m.expiry_date)}</td>
                                 <td>{m.mileage ? m.mileage.toLocaleString() + ' mi' : '—'}</td>
-                                <td className="cell-notes">{m.advisory_notes || '—'}</td>
+                                <td>
+                                  <MotNotes notes={m.advisory_notes} label="advisory" />
+                                  {m.failure_reasons && <MotNotes notes={m.failure_reasons} label="failure" />}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -288,7 +294,12 @@ export default function VehicleDetailPage() {
                       <td><span className={`badge badge-${m.result}`}>{m.result}</span></td>
                       <td>{formatDate(m.expiry_date)}</td>
                       <td>{m.mileage ? m.mileage.toLocaleString() + ' mi' : '—'}</td>
-                      <td className="cell-notes">{m.advisory_notes || '—'}</td>
+                      <td>
+                        <MotNotes notes={m.advisory_notes} label="advisory" />
+                        {m.failure_reasons && (
+                          <MotNotes notes={m.failure_reasons} label="failure" />
+                        )}
+                      </td>
                       <td className="cell-actions">
                         <Link to={`/vehicles/${id}/mot/${m.id}/edit`} className="btn btn-secondary btn-sm">Edit</Link>
                         <button onClick={() => deleteMot(m.id)} className="btn btn-danger btn-sm">Del</button>

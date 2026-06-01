@@ -20,6 +20,21 @@ export default function AddMotPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    // Check for duplicate test_date on this vehicle
+    const { data: existing } = await supabase
+      .from('mot_records')
+      .select('id')
+      .eq('vehicle_id', id)
+      .eq('test_date', form.test_date)
+      .maybeSingle()
+
+    if (existing) {
+      setError('An MOT record for this test date already exists on this vehicle.')
+      setLoading(false)
+      return
+    }
+
     const { error: err } = await supabase.from('mot_records').insert({
       vehicle_id: id,
       test_date: form.test_date,
