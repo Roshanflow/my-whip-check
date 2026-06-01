@@ -66,6 +66,7 @@ export default function VehicleDetailPage() {
     })
 
     setFetching(false)
+    console.log('[DEBUG] raw first DVSA test record:', JSON.stringify(data?._rawFirstTest, null, 2))
 
     if (fnErr || data?.error) {
       setFetchError(data?.error ?? fnErr?.message ?? 'Could not fetch MOT history. Check the plate and try again.')
@@ -78,12 +79,18 @@ export default function VehicleDetailPage() {
       return
     }
 
-    // Normalise to YYYY-MM-DD for comparison (DVSA may return full ISO timestamps)
+    // Normalise dates to YYYY-MM-DD (DVSA may return full ISO timestamps)
     const toDateStr = (val) => val ? String(val).slice(0, 10) : null
-    const existingDates = new Set(motRecords.map(r => toDateStr(r.test_date)))
     const normalised = history.map(r => ({ ...r, test_date: toDateStr(r.test_date), expiry_date: toDateStr(r.expiry_date) }))
-    const newRecords = normalised.filter(r => !existingDates.has(r.test_date))
-    const skipped = normalised.filter(r => existingDates.has(r.test_date))
+
+    // Deduplicate by MOT test number (preferred) or fall back to test date
+    const existingTestNumbers = new Set(motRecords.map(r => r.mot_test_number).filter(Boolean))
+    const existingDates = new Set(motRecords.map(r => toDateStr(r.test_date)))
+    const isDuplicate = (r) =>
+      r.mot_test_number ? existingTestNumbers.has(r.mot_test_number) : existingDates.has(r.test_date)
+
+    const newRecords = normalised.filter(r => !isDuplicate(r))
+    const skipped = normalised.filter(r => isDuplicate(r))
 
     setPreview({ records: newRecords, skipped })
   }

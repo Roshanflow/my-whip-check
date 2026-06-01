@@ -13,7 +13,7 @@ export default function AppLayout() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <header className="nav">
-        <Link to="/" className="nav-brand">🚗 MyWhipCheck</Link>
+        <Link to="/" className="nav-brand">MyWhipCheck</Link>
         <div className="nav-actions">
           <span className="nav-email">{user?.email}</span>
           <button onClick={handleSignOut} className="btn btn-secondary btn-sm">Sign out</button>

@@ -76,6 +76,7 @@ serve(async (req) => {
 
     // ── DVSA: MOT history (OAuth2) ───────────────────────────────────────────
     let motHistory: Record<string, unknown>[] = []
+    let _rawFirstTest: unknown = null
 
     if (dvsaClientId && dvsaApiKey) {
       const accessToken = await getDvsaToken()
@@ -96,22 +97,32 @@ serve(async (req) => {
         const dvsaData = await dvsaRes.json()
         const vehicle = Array.isArray(dvsaData) ? dvsaData[0] : dvsaData
         const tests = vehicle?.motTests ?? vehicle?.tests ?? []
+        _rawFirstTest = tests[0] ?? null
 
         motHistory = tests.map((t: Record<string, unknown>) => ({
+          mot_test_number: t.motTestNumber ?? t.testNumber ?? null,
           test_date: t.completedDate ?? t.testDate ?? null,
           expiry_date: t.expiryDate ?? null,
           result: String(t.testResult ?? t.result ?? '').toLowerCase().includes('pass') ? 'pass' : 'fail',
           mileage: t.odometerValue ? parseInt(String(t.odometerValue), 10) : null,
           advisory_notes: Array.isArray(t.rfrAndComments)
             ? t.rfrAndComments
-                .filter((c: Record<string, unknown>) => String(c.type).toUpperCase() === 'ADVISORY')
-                .map((c: Record<string, unknown>) => c.text)
+                .filter((c: Record<string, unknown>) => {
+                  const type = String(c.type ?? c.category ?? '').toUpperCase()
+                  return type === 'ADVISORY' || type === 'USER_ENTERED' || type === 'MONITOR' || (!['MAJOR', 'DANGEROUS', 'MINOR', 'FAIL', 'PRS'].includes(type) && type !== '')
+                })
+                .map((c: Record<string, unknown>) => String(c.text ?? c.comment ?? c.description ?? '').trim())
+                .filter(Boolean)
                 .join('\n') || null
             : null,
           failure_reasons: Array.isArray(t.rfrAndComments)
             ? t.rfrAndComments
-                .filter((c: Record<string, unknown>) => String(c.type).toUpperCase() === 'FAIL')
-                .map((c: Record<string, unknown>) => c.text)
+                .filter((c: Record<string, unknown>) => {
+                  const type = String(c.type ?? c.category ?? '').toUpperCase()
+                  return ['MAJOR', 'DANGEROUS', 'MINOR', 'FAIL', 'PRS'].includes(type)
+                })
+                .map((c: Record<string, unknown>) => String(c.text ?? c.comment ?? c.description ?? '').trim())
+                .filter(Boolean)
                 .join('\n') || null
             : null,
         }))
@@ -120,7 +131,7 @@ serve(async (req) => {
       return json({ error: 'DVSA credentials not configured. Set DVSA_CLIENT_ID, DVSA_CLIENT_SECRET, DVSA_API_KEY, and DVSA_TOKEN_URL in Edge Function secrets.' }, 500)
     }
 
-    return json({ vehicle: vehicleInfo, motHistory })
+    return json({ vehicle: vehicleInfo, motHistory, _rawFirstTest })
 
   } catch (err) {
     return json({ error: (err as Error).message }, 500)
