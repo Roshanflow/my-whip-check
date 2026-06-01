@@ -78,6 +78,20 @@ export default function AddVehiclePage() {
     setError('')
     setLoading(true)
 
+    // Prevent duplicate vehicles by registration plate
+    const { data: existing } = await supabase
+      .from('vehicles')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('registration', form.registration.toUpperCase())
+      .maybeSingle()
+
+    if (existing) {
+      setError('A vehicle with this registration is already in your garage.')
+      setLoading(false)
+      return
+    }
+
     const { data, error: err } = await supabase.from('vehicles').insert({
       user_id: user.id,
       nickname: form.nickname || null,

@@ -83,39 +83,80 @@ export default function VehicleDetailPage() {
     const toDateStr = (val) => val ? String(val).slice(0, 10) : null
     const normalised = history.map(r => ({ ...r, test_date: toDateStr(r.test_date), expiry_date: toDateStr(r.expiry_date) }))
 
-    // Deduplicate by MOT test number (preferred) or fall back to test date
-    const existingTestNumbers = new Set(motRecords.map(r => r.mot_test_number).filter(Boolean))
-    const existingDates = new Set(motRecords.map(r => toDateStr(r.test_date)))
-    const isDuplicate = (r) =>
-      r.mot_test_number ? existingTestNumbers.has(r.mot_test_number) : existingDates.has(r.test_date)
+    // Build lookup maps from existing DB records
+    const existingByTestNumber = new Map(
+      motRecords.filter(r => r.mot_test_number).map(r => [r.mot_test_number, r])
+    )
+    const manualDates = new Set(
+      motRecords.filter(r => !r.mot_test_number).map(r => toDateStr(r.test_date))
+    )
 
-    const newRecords = normalised.filter(r => !isDuplicate(r))
-    const skipped = normalised.filter(r => isDuplicate(r))
+    const toInsert = []   // new records from DVSA not yet in DB
+    const toUpdate = []   // existing DVSA records — refresh values from source of truth
+    const skipped = []    // manually-added records — leave untouched
 
-    setPreview({ records: newRecords, skipped })
+    for (const r of normalised) {
+      if (r.mot_test_number && existingByTestNumber.has(r.mot_test_number)) {
+        toUpdate.push({ ...r, id: existingByTestNumber.get(r.mot_test_number).id })
+      } else if (!r.mot_test_number && manualDates.has(r.test_date)) {
+        skipped.push(r)
+      } else {
+        toInsert.push(r)
+      }
+    }
+
+    setPreview({ toInsert, toUpdate, skipped })
   }
 
   async function handleConfirm() {
-    if (!preview?.records?.length) return
+    const hasWork = preview?.toInsert?.length || preview?.toUpdate?.length
+    if (!hasWork) return
     setConfirming(true)
 
-    const { data: inserted, error: insErr } = await supabase
-      .from('mot_records')
-      .insert(preview.records.map(r => ({ ...r, vehicle_id: id })))
-      .select()
+    let insertedRows = []
+    let confirmError = null
+
+    // Insert brand-new records
+    if (preview.toInsert.length) {
+      const { data, error: insErr } = await supabase
+        .from('mot_records')
+        .insert(preview.toInsert.map(r => ({ ...r, vehicle_id: id })))
+        .select()
+      if (insErr) confirmError = insErr.message
+      else insertedRows = data || []
+    }
+
+    // Update existing DVSA records with fresh values from source of truth
+    if (!confirmError && preview.toUpdate.length) {
+      for (const r of preview.toUpdate) {
+        const { id: recordId, ...fields } = r
+        const { error: updErr } = await supabase
+          .from('mot_records')
+          .update({ ...fields, vehicle_id: id })
+          .eq('id', recordId)
+        if (updErr) { confirmError = updErr.message; break }
+      }
+    }
 
     setConfirming(false)
 
-    if (insErr) {
-      setFetchError(insErr.message)
+    if (confirmError) {
+      setFetchError(confirmError)
       return
     }
 
-    setMotRecords(prev =>
-      [...(inserted || []), ...prev].sort(
+    // Refresh local state: merge inserts + updated values
+    setMotRecords(prev => {
+      const updatedIds = new Set(preview.toUpdate.map(r => r.id))
+      const kept = prev.filter(r => !updatedIds.has(r.id))
+      const updatedRows = preview.toUpdate.map(r => {
+        const { id: recordId, ...fields } = r
+        return { ...fields, id: recordId, vehicle_id: id }
+      })
+      return [...insertedRows, ...updatedRows, ...kept].sort(
         (a, b) => new Date(b.test_date) - new Date(a.test_date)
       )
-    )
+    })
     closeImport()
   }
 
@@ -219,38 +260,46 @@ export default function VehicleDetailPage() {
                     Review MOT History for <strong>{importPlate}</strong>
                   </div>
 
-                  {preview.records.length === 0 ? (
+                  {preview.toInsert.length === 0 && preview.toUpdate.length === 0 ? (
                     <div className="alert-error" style={{ marginBottom: 12 }}>
-                      All {preview.skipped.length} records from DVSA already exist in your history. Nothing to import.
+                      No changes to make — all DVSA records match what's already stored.
+                      {preview.skipped.length > 0 && ` ${preview.skipped.length} manually-added record${preview.skipped.length !== 1 ? 's' : ''} left unchanged.`}
                     </div>
                   ) : (
                     <>
                       <p className="import-panel-desc">
-                        Found <strong>{preview.records.length} new record{preview.records.length !== 1 ? 's' : ''}</strong> to import.
-                        {preview.skipped.length > 0 && ` ${preview.skipped.length} already exist and will be skipped.`}
+                        {preview.toInsert.length > 0 && <><strong>{preview.toInsert.length} new</strong> record{preview.toInsert.length !== 1 ? 's' : ''} to add. </>}
+                        {preview.toUpdate.length > 0 && <><strong>{preview.toUpdate.length}</strong> existing record{preview.toUpdate.length !== 1 ? 's' : ''} will be refreshed from DVSA. </>}
+                        {preview.skipped.length > 0 && <>{preview.skipped.length} manually-added record{preview.skipped.length !== 1 ? 's' : ''} left unchanged.</>}
                       </p>
                       <div className="table-wrap" style={{ marginBottom: 16 }}>
                         <table>
                           <thead>
                             <tr>
+                              <th>Status</th>
                               <th>Test Date</th>
                               <th>Result</th>
                               <th>Expiry</th>
                               <th>Mileage</th>
-                              <th>Advisories</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {preview.records.map((m, i) => (
-                              <tr key={i}>
+                            {preview.toInsert.map((m, i) => (
+                              <tr key={`new-${i}`}>
+                                <td><span className="badge" style={{ background: '#d1fae5', color: '#065f46' }}>New</span></td>
                                 <td>{formatDate(m.test_date)}</td>
                                 <td><span className={`badge badge-${m.result}`}>{m.result}</span></td>
                                 <td>{formatDate(m.expiry_date)}</td>
                                 <td>{m.mileage ? m.mileage.toLocaleString() + ' mi' : '—'}</td>
-                                <td>
-                                  <MotNotes notes={m.advisory_notes} label="advisory" />
-                                  {m.failure_reasons && <MotNotes notes={m.failure_reasons} label="failure" />}
-                                </td>
+                              </tr>
+                            ))}
+                            {preview.toUpdate.map((m, i) => (
+                              <tr key={`upd-${i}`}>
+                                <td><span className="badge" style={{ background: '#dbeafe', color: '#1d4ed8' }}>Update</span></td>
+                                <td>{formatDate(m.test_date)}</td>
+                                <td><span className={`badge badge-${m.result}`}>{m.result}</span></td>
+                                <td>{formatDate(m.expiry_date)}</td>
+                                <td>{m.mileage ? m.mileage.toLocaleString() + ' mi' : '—'}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -262,13 +311,13 @@ export default function VehicleDetailPage() {
                   {fetchError && <div className="alert-error" style={{ marginBottom: 12 }}>{fetchError}</div>}
 
                   <div className="form-actions">
-                    {preview.records.length > 0 && (
+                    {(preview.toInsert.length > 0 || preview.toUpdate.length > 0) && (
                       <button
                         className="btn btn-primary"
                         onClick={handleConfirm}
                         disabled={confirming}
                       >
-                        {confirming ? 'Saving…' : `Yes, import ${preview.records.length} record${preview.records.length !== 1 ? 's' : ''}`}
+                        {confirming ? 'Saving…' : `Confirm (${preview.toInsert.length} new, ${preview.toUpdate.length} updated)`}
                       </button>
                     )}
                     <button className="btn btn-secondary" onClick={closeImport}>Cancel</button>
